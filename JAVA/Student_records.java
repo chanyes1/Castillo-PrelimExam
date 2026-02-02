@@ -9,50 +9,56 @@ public class StudentRecordsApp extends JFrame {
     private DefaultTableModel model;
 
     private JTextField txtId;
-    private JTextField txtName;
-    private JTextField txtGrade;
+    private JTextField txtFirstName;
+    private JTextField txtLastName;
 
     private static final String FILE_NAME = "class_records.csv";
 
     public StudentRecordsApp() {
-        setTitle("Student Records Application");
-        setSize(600, 400);
+        setTitle("Student Records");
+        setSize(900, 400);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
 
-        // Table model with column names
-        model = new DefaultTableModel(new String[]{"ID", "Name", "Grade"}, 0);
-        table = new JTable(model);
+        // UPDATED columns
+        model = new DefaultTableModel(
+                new String[]{
+                        "Student ID",
+                        "First Name",
+                        "Last Name",
+                        "Lab Work 1",
+                        "Lab Work 2",
+                        "Lab Work 3",
+                        "Prelim Exam",
+                        "Attendance Grade"
+                }, 0);
 
-        loadFromFile(); // READ on startup
+        table = new JTable(model);
+        loadFromFile();
 
         JScrollPane scrollPane = new JScrollPane(table);
 
-        // Input panel
-        JPanel inputPanel = new JPanel(new GridLayout(2, 4, 5, 5));
-
         txtId = new JTextField();
-        txtName = new JTextField();
-        txtGrade = new JTextField();
+        txtFirstName = new JTextField();
+        txtLastName = new JTextField();
 
         JButton btnAdd = new JButton("Add");
         JButton btnDelete = new JButton("Delete");
 
-        inputPanel.add(new JLabel("ID"));
-        inputPanel.add(new JLabel("Name"));
-        inputPanel.add(new JLabel("Grade"));
+        JPanel inputPanel = new JPanel(new GridLayout(2, 4, 5, 5));
+        inputPanel.add(new JLabel("Student ID"));
+        inputPanel.add(new JLabel("First Name"));
+        inputPanel.add(new JLabel("Last Name"));
         inputPanel.add(new JLabel(""));
 
         inputPanel.add(txtId);
-        inputPanel.add(txtName);
-        inputPanel.add(txtGrade);
+        inputPanel.add(txtFirstName);
+        inputPanel.add(txtLastName);
         inputPanel.add(btnAdd);
 
-        // Button panel
         JPanel buttonPanel = new JPanel();
         buttonPanel.add(btnDelete);
 
-        // Add actions
         btnAdd.addActionListener(e -> addRecord());
         btnDelete.addActionListener(e -> deleteRecord());
 
@@ -61,16 +67,33 @@ public class StudentRecordsApp extends JFrame {
         add(buttonPanel, BorderLayout.SOUTH);
     }
 
-    // READ (File I/O)
+    // READ
     private void loadFromFile() {
         try (BufferedReader br = new BufferedReader(new FileReader(FILE_NAME))) {
             String line;
+            boolean firstLine = true;
 
             while ((line = br.readLine()) != null) {
-                String[] data = line.split(",");
-                model.addRow(data);
-            }
 
+                // Skip header
+                if (firstLine) {
+                    firstLine = false;
+                    continue;
+                }
+
+                String[] data = line.split(",");
+
+                model.addRow(new Object[]{
+                        formatStudentId(data[0]),
+                        data[1],
+                        data[2],
+                        data[3],
+                        data[4],
+                        data[5],
+                        data[6], // Prelim Exam
+                        data[7]  // Attendance Grade
+                });
+            }
         } catch (IOException e) {
             JOptionPane.showMessageDialog(this,
                     "Error reading file: " + e.getMessage(),
@@ -81,37 +104,47 @@ public class StudentRecordsApp extends JFrame {
 
     // CREATE
     private void addRecord() {
-        String id = txtId.getText();
-        String name = txtName.getText();
-        String grade = txtGrade.getText();
+        String rawId = txtId.getText();
+        String firstName = txtFirstName.getText();
+        String lastName = txtLastName.getText();
 
-        if (id.isEmpty() || name.isEmpty() || grade.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "All fields are required.");
+        if (!rawId.matches("\\d{9}")) {
+            JOptionPane.showMessageDialog(this,
+                    "Student ID must be exactly 9 digits.");
             return;
         }
 
-        model.addRow(new String[]{id, name, grade});
+        model.addRow(new Object[]{
+                formatStudentId(rawId),
+                firstName,
+                lastName,
+                "", "", "", "", "" // new columns included
+        });
 
         txtId.setText("");
-        txtName.setText("");
-        txtGrade.setText("");
+        txtFirstName.setText("");
+        txtLastName.setText("");
     }
 
     // DELETE
     private void deleteRecord() {
-        int selectedRow = table.getSelectedRow();
-
-        if (selectedRow == -1) {
+        int row = table.getSelectedRow();
+        if (row == -1) {
             JOptionPane.showMessageDialog(this, "Select a row to delete.");
             return;
         }
+        model.removeRow(row);
+    }
 
-        model.removeRow(selectedRow);
+    // ID formatter
+    private String formatStudentId(String id) {
+        return id.substring(0, 2) + "-" +
+               id.substring(2, 6) + "-" +
+               id.substring(6);
     }
 
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> {
-            new StudentRecordsApp().setVisible(true);
-        });
+        SwingUtilities.invokeLater(() ->
+                new StudentRecordsApp().setVisible(true));
     }
 }
